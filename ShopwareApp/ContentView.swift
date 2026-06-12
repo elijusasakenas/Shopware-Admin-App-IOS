@@ -1995,9 +1995,16 @@ final class ShopwareAdminClient {
     }
 
     func fetchSalesChannels() async throws -> [SalesChannel] {
+        // Product comparison/feed channels (type ed535e57...) carry no orders,
+        // customers, or visibilities — exclude them like the admin dashboard does
         let response = try await requestJSON(path: "/api/search/sales-channel", method: "POST", body: [
             "limit": 50,
-            "filter": [["type": "equals", "field": "active", "value": true]],
+            "filter": [
+                ["type": "equals", "field": "active", "value": true],
+                ["type": "not", "operator": "and", "queries": [
+                    ["type": "equals", "field": "typeId", "value": "ed535e5722134ac1aa6524f73e26881b"]
+                ]]
+            ],
             "sort": [["field": "name", "order": "ASC"]]
         ])
         return (response["data"] as? [[String: Any]] ?? []).compactMap { row in
