@@ -197,9 +197,9 @@ struct DashboardView: View {
                         OrdersBarChart(buckets: viewModel.orderBuckets, range: viewModel.ordersRange)
                     }
 
-                    // Revenue chart
+                    // Turnover chart
                     ChartCard(
-                        title: "Revenue",
+                        title: "Turnover",
                         ranges: DateRange.allCases,
                         selectedRange: $viewModel.revenueRange,
                         isLoading: viewModel.isLoading,
@@ -211,7 +211,7 @@ struct DashboardView: View {
                     // Today's orders list
                     HStack {
                         Text("Today's orders")
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
                         Spacer()
                         Button {
@@ -228,7 +228,7 @@ struct DashboardView: View {
                     // Top products
                     if !viewModel.topProducts.isEmpty {
                         Text("Top products · 30 days")
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
                         VStack(spacing: 0) {
                             ForEach(Array(viewModel.topProducts.enumerated()), id: \.element.id) { index, product in
@@ -264,7 +264,7 @@ struct DashboardView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(Color.amber)
                             Text("Low stock")
-                                .font(.title3.weight(.bold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(Color.primaryText)
                         }
                         VStack(spacing: 0) {
@@ -359,7 +359,7 @@ struct OrderDetailView: View {
                             .clipShape(Capsule())
                         Spacer()
                         Text(order.amountTotal.formatted(.currency(code: order.currencyCode)))
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
                     }
                 }
@@ -370,7 +370,7 @@ struct OrderDetailView: View {
                 if !customerName.isEmpty || !customerEmail.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Customer")
-                            .font(.headline.weight(.bold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
                         if !customerName.isEmpty {
                             Text(customerName)
@@ -394,7 +394,7 @@ struct OrderDetailView: View {
                 // Line items
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Items")
-                        .font(.headline.weight(.bold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.primaryText)
                     if isLoading {
                         ProgressView().tint(.shopwareBlue).frame(maxWidth: .infinity).padding(12)
@@ -536,7 +536,7 @@ struct StateTransitionCard: View {
                     .foregroundStyle(Color.secondaryText)
                     .textCase(.uppercase)
                 Text(currentState)
-                    .font(.headline.weight(.bold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.primaryText)
             }
             Spacer()
@@ -616,7 +616,7 @@ struct ShopSettingsView: View {
                         // Maintenance mode
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Maintenance mode")
-                                .font(.title3.weight(.bold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(Color.primaryText)
                             Text("Visitors see a maintenance page while enabled.")
                                 .font(.caption)
@@ -641,7 +641,7 @@ struct ShopSettingsView: View {
                         // Marketing / promotions
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Marketing")
-                                .font(.title3.weight(.bold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(Color.primaryText)
                             Text("Enable or disable promotions instantly.")
                                 .font(.caption)
@@ -680,7 +680,7 @@ struct ShopSettingsView: View {
                         // Newsletter registrations
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Newsletter signups")
-                                .font(.title3.weight(.bold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(Color.primaryText)
                             Text("Latest registrations, newest first.")
                                 .font(.caption)
@@ -922,7 +922,7 @@ struct ShopStatusView: View {
                                 .foregroundStyle(Color.secondaryText)
                                 .textCase(.uppercase)
                             Text(version)
-                                .font(.headline.weight(.bold))
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(Color.primaryText)
                         }
                         Spacer()
@@ -938,7 +938,7 @@ struct ShopStatusView: View {
                     // Storefront reachability
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Storefront availability")
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
 
                         if domains.isEmpty {
@@ -983,7 +983,7 @@ struct ShopStatusView: View {
                     // Shop log
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Shop log")
-                            .font(.title3.weight(.bold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.primaryText)
 
                         if logEntries.isEmpty {
@@ -1079,46 +1079,57 @@ struct ChartCard<ChartContent: View>: View {
     @ViewBuilder let chartContent: () -> ChartContent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(title)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(Color.primaryText)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.primaryText)
+                    Text(selectedRange.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(Color.secondaryText)
+                }
                 Spacer()
                 if isLoading {
-                    ProgressView().scaleEffect(0.8)
+                    ProgressView().scaleEffect(0.7)
                 }
-            }
-
-            // Range picker
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                Menu {
                     ForEach(ranges, id: \.self) { range in
                         Button {
                             selectedRange = range
                             onRangeChange()
                         } label: {
-                            Text(range.label)
-                                .font(.caption.weight(.bold))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(selectedRange == range ? Color.shopwareBlue : Color.white)
-                                .foregroundStyle(selectedRange == range ? Color.white : Color.secondaryText)
-                                .clipShape(Capsule())
-                                .overlay(Capsule().stroke(selectedRange == range ? Color.shopwareBlue : Color.border, lineWidth: 1))
+                            if selectedRange == range {
+                                Label(range.menuLabel, systemImage: "checkmark")
+                            } else {
+                                Text(range.menuLabel)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(selectedRange.menuLabel)
+                            .font(.subheadline)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(Color.primaryText)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 36)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(Color.border, lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
 
             chartContent()
-                .frame(height: 180)
+                .frame(height: 190)
         }
-        .padding(16)
+        .padding(20)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
     }
 }
 
@@ -1130,36 +1141,46 @@ struct OrdersBarChart: View {
 
     var body: some View {
         if buckets.isEmpty {
-            emptyState
+            ChartEmptyState(text: "No orders in this period")
         } else {
             Chart(buckets) { bucket in
-                BarMark(
+                AreaMark(
                     x: .value("Date", bucket.date, unit: range.calendarComponent),
                     y: .value("Orders", bucket.count)
                 )
-                .foregroundStyle(Color.shopwareBlue.gradient)
-                .cornerRadius(4)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.shopwareBlue.opacity(0.16), Color.shopwareBlue.opacity(0.01)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .interpolationMethod(.monotone)
+
+                LineMark(
+                    x: .value("Date", bucket.date, unit: range.calendarComponent),
+                    y: .value("Orders", bucket.count)
+                )
+                .foregroundStyle(Color.shopwareBlue)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .interpolationMethod(.monotone)
             }
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { _ in
-                    AxisGridLine()
                     AxisValueLabel(format: range.axisFormat)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
-                    AxisGridLine()
-                    AxisValueLabel { if let v = value.as(Int.self) { Text("\(v)") } }
+                    AxisGridLine().foregroundStyle(Color.border.opacity(0.55))
+                    AxisValueLabel {
+                        if let v = value.as(Int.self) {
+                            Text("\(v)").foregroundStyle(Color.secondaryText)
+                        }
+                    }
                 }
             }
         }
-    }
-
-    private var emptyState: some View {
-        Text("No orders in this period")
-            .font(.subheadline)
-            .foregroundStyle(Color.secondaryText)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -1170,37 +1191,64 @@ struct RevenueBarChart: View {
 
     var body: some View {
         if buckets.isEmpty {
-            Text("No revenue in this period")
-                .font(.subheadline)
-                .foregroundStyle(Color.secondaryText)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ChartEmptyState(text: "No turnover in this period")
         } else {
             Chart(buckets) { bucket in
-                BarMark(
+                AreaMark(
                     x: .value("Date", bucket.date, unit: range.calendarComponent),
-                    y: .value("Revenue", bucket.amount)
+                    y: .value("Turnover", bucket.amount)
                 )
-                .foregroundStyle(Color.amber.gradient)
-                .cornerRadius(4)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.shopwareBlue.opacity(0.16), Color.shopwareBlue.opacity(0.01)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .interpolationMethod(.monotone)
+
+                LineMark(
+                    x: .value("Date", bucket.date, unit: range.calendarComponent),
+                    y: .value("Turnover", bucket.amount)
+                )
+                .foregroundStyle(Color.shopwareBlue)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .interpolationMethod(.monotone)
             }
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { _ in
-                    AxisGridLine()
                     AxisValueLabel(format: range.axisFormat)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
-                    AxisGridLine()
+                    AxisGridLine().foregroundStyle(Color.border.opacity(0.55))
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
-                            Text(v.formatted(.currency(code: currency).precision(.fractionLength(0))))
+                            Text(v.formatted(.currency(code: currency).precision(.fractionLength(2))))
                                 .font(.caption2)
+                                .foregroundStyle(Color.secondaryText)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+struct ChartEmptyState: View {
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "chart.xyaxis.line")
+                .font(.title2)
+                .foregroundStyle(Color.border)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(Color.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -1221,6 +1269,25 @@ enum DateRange: String, CaseIterable {
         case .hours24:   return "24 hours"
         case .yesterday: return "Yesterday"
         }
+    }
+
+    var menuLabel: String {
+        switch self {
+        case .days30:    return "Last 30 days"
+        case .days14:    return "Last 14 days"
+        case .days7:     return "Last 7 days"
+        case .hours24:   return "Last 24 hours"
+        case .yesterday: return "Yesterday"
+        }
+    }
+
+    // "13 May - 12 Jun" under the card title, like the admin dashboard
+    var subtitle: String {
+        let format = Date.FormatStyle().day().month(.abbreviated)
+        if self == .yesterday {
+            return sinceDate.formatted(format)
+        }
+        return "\(sinceDate.formatted(format)) - \(Date().formatted(format))"
     }
 
     var sinceDate: Date {
@@ -1299,22 +1366,24 @@ struct MetricCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Capsule().fill(accent).frame(width: 34, height: 6)
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.secondaryText)
-                .lineLimit(1)
+            HStack(spacing: 7) {
+                Circle().fill(accent).frame(width: 8, height: 8)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+                    .lineLimit(1)
+            }
             Text(value)
-                .font(.system(size: 28, weight: .semibold))
+                .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(Color.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
         }
-        .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
-        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+        .padding(16)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color.border, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
     }
 }
 
