@@ -119,9 +119,7 @@ struct DashboardView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                             HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color(red: 0.22, green: 0.82, blue: 0.42))
-                                    .frame(width: 7, height: 7)
+                                PulsingDot()
                                 Text(viewModel.versionString.isEmpty
                                      ? "Administration"
                                      : "Administration \(viewModel.versionString)")
@@ -143,7 +141,7 @@ struct DashboardView: View {
                                 .background(Color.white.opacity(0.08))
                                 .clipShape(Circle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableButtonStyle())
                         .accessibilityLabel("Shop settings")
 
                         Button {
@@ -156,7 +154,7 @@ struct DashboardView: View {
                                 .background(Color.white.opacity(0.08))
                                 .clipShape(Circle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableButtonStyle())
                         .accessibilityLabel("Disconnect")
                     }
                     .padding(.horizontal, 18)
@@ -168,6 +166,7 @@ struct DashboardView: View {
                         )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .riseIn(0)
 
                     // Sales channel selector
                     Menu {
@@ -209,7 +208,8 @@ struct DashboardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color.border, lineWidth: 1))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressableButtonStyle())
+                    .riseIn(0.06)
 
                     if let msg = viewModel.errorMessage { ErrorBanner(message: msg) }
 
@@ -220,6 +220,7 @@ struct DashboardView: View {
                         MetricCard(title: "Products", value: viewModel.metrics?.productCount.formatted() ?? "-", accent: .blue)
                         MetricCard(title: "Customers", value: viewModel.metrics?.customerCount.formatted() ?? "-", accent: .red)
                     }
+                    .riseIn(0.12)
 
                     // Orders chart
                     ChartCard(
@@ -231,6 +232,7 @@ struct DashboardView: View {
                     ) {
                         OrdersBarChart(buckets: viewModel.orderBuckets, range: viewModel.ordersRange)
                     }
+                    .riseIn(0.18)
 
                     // Turnover chart
                     ChartCard(
@@ -242,6 +244,7 @@ struct DashboardView: View {
                     ) {
                         RevenueBarChart(buckets: viewModel.revenueBuckets, range: viewModel.revenueRange, currency: viewModel.metrics?.currencyCode ?? "EUR")
                     }
+                    .riseIn(0.24)
 
                     // Today's orders list
                     HStack {
@@ -252,13 +255,22 @@ struct DashboardView: View {
                         Button {
                             Task { await viewModel.refresh() }
                         } label: {
-                            Image(systemName: "arrow.clockwise").font(.headline)
+                            Image(systemName: "arrow.clockwise")
+                                .font(.headline)
+                                .rotationEffect(.degrees(viewModel.isLoading ? 360 : 0))
+                                .animation(
+                                    viewModel.isLoading
+                                        ? .linear(duration: 1).repeatForever(autoreverses: false)
+                                        : .default,
+                                    value: viewModel.isLoading
+                                )
                         }
                         .buttonStyle(IconButtonStyle())
                         .disabled(viewModel.isLoading)
                     }
 
                     OrderList(orders: viewModel.metrics?.latestOrders ?? [], isLoading: viewModel.isLoading)
+                        .riseIn(0.3)
 
                     // Top products
                     if !viewModel.topProducts.isEmpty {
@@ -1215,6 +1227,7 @@ struct OrdersBarChart: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.45), value: buckets.map(\.count))
         }
     }
 }
@@ -1267,6 +1280,7 @@ struct RevenueBarChart: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.45), value: buckets.map(\.amount))
         }
     }
 }
@@ -1413,6 +1427,8 @@ struct MetricCard: View {
                 .foregroundStyle(Color.primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: value)
         }
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
         .padding(16)
@@ -1505,6 +1521,66 @@ struct IconButtonStyle: ButtonStyle {
             .foregroundStyle(Color.primaryText)
             .background(Color(red: 0.91, green: 0.94, blue: 0.96).opacity(configuration.isPressed ? 0.7 : 1))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// Springy press feedback for custom-styled buttons
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// Soft radar pulse for the live connection indicator
+struct PulsingDot: View {
+    @State private var pulse = false
+    private let green = Color(red: 0.22, green: 0.82, blue: 0.42)
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(green)
+                .frame(width: 14, height: 14)
+                .scaleEffect(pulse ? 1.8 : 0.6)
+                .opacity(pulse ? 0 : 0.5)
+            Circle()
+                .fill(green)
+                .frame(width: 7, height: 7)
+        }
+        .frame(width: 14, height: 14)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
+                pulse = true
+            }
+        }
+    }
+}
+
+// Staggered fade-and-rise entrance for dashboard cards
+struct RiseIn: ViewModifier {
+    @State private var shown = false
+    let delay: Double
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 16)
+            .onAppear {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.82).delay(delay)) {
+                    shown = true
+                }
+            }
+    }
+}
+
+extension View {
+    func riseIn(_ delay: Double = 0) -> some View {
+        modifier(RiseIn(delay: delay))
     }
 }
 
