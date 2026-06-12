@@ -246,6 +246,15 @@ struct DashboardView: View {
                     }
                     .riseIn(0.24)
 
+                    // Sales by language
+                    if !viewModel.languageStats.isEmpty {
+                        LanguageBreakdownCard(
+                            stats: viewModel.languageStats,
+                            currency: viewModel.metrics?.currencyCode ?? "EUR"
+                        )
+                        .riseIn(0.27)
+                    }
+
                     // Today's orders list
                     HStack {
                         Text("Today's orders")
@@ -1285,6 +1294,58 @@ struct RevenueBarChart: View {
     }
 }
 
+struct LanguageBreakdownCard: View {
+    let stats: [LanguageStat]
+    let currency: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Sales by language")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.primaryText)
+                Text("Last 30 days · where your customers buy")
+                    .font(.caption)
+                    .foregroundStyle(Color.secondaryText)
+            }
+
+            let maxCount = max(stats.map(\.count).max() ?? 1, 1)
+
+            ForEach(stats) { stat in
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 10) {
+                        Text(stat.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.primaryText)
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(stat.count) \(stat.count == 1 ? "order" : "orders")")
+                            .font(.caption)
+                            .foregroundStyle(Color.secondaryText)
+                        Text(stat.amount.formatted(.currency(code: currency).precision(.fractionLength(0))))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.primaryText)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.border.opacity(0.4))
+                            Capsule()
+                                .fill(Color.shopwareBlue)
+                                .frame(width: max(geo.size.width * CGFloat(stat.count) / CGFloat(maxCount), 6))
+                        }
+                    }
+                    .frame(height: 6)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color.border.opacity(0.7), lineWidth: 1))
+    }
+}
+
 struct ChartEmptyState: View {
     let text: String
 
@@ -1602,6 +1663,7 @@ final class ShopwareDashboardViewModel: ObservableObject {
     @Published var selectedChannelID: String?
     @Published var lowStockProducts: [LowStockProduct] = []
     @Published var topProducts: [TopProduct] = []
+    @Published var languageStats: [LanguageStat] = []
     @Published var versionString = ""
 
     var selectedChannelName: String {
@@ -1667,11 +1729,13 @@ final class ShopwareDashboardViewModel: ObservableObject {
             async let rb = client.fetchHistory(paid: true, range: revenueRange, salesChannelID: selectedChannelID)
             async let ls = client.fetchLowStockProducts(salesChannelID: selectedChannelID)
             async let tp = client.fetchTopProducts(since: DateRange.days30.sinceDate, salesChannelID: selectedChannelID)
+            async let lang = client.fetchLanguageBreakdown(since: DateRange.days30.sinceDate, salesChannelID: selectedChannelID)
             metrics = try await m
             orderBuckets = try await ob
             revenueBuckets = try await rb
             lowStockProducts = (try? await ls) ?? []
             topProducts = (try? await tp) ?? []
+            languageStats = (try? await lang) ?? []
         } catch {
             errorMessage = error.shopwareDisplayMessage
         }
@@ -1778,6 +1842,7 @@ final class ShopwareDashboardViewModel: ObservableObject {
         revenueBuckets = []
         salesChannels = []
         selectedChannelID = nil
+        languageStats = []
         versionString = ""
     }
 }
@@ -1868,6 +1933,13 @@ struct TopProduct: Identifiable {
     var id: String { label }
     var label: String
     var quantitySold: Int
+}
+
+struct LanguageStat: Identifiable {
+    var id: String
+    var name: String
+    var count: Int
+    var amount: Double
 }
 
 struct CustomerRegistration: Identifiable {
@@ -2203,6 +2275,61 @@ final class ShopwareAdminClient {
             let name = translatedName(from: attrs) ?? attrs["name"] as? String ?? "Unnamed product"
             return LowStockProduct(id: id, name: name, stock: attrs["stock"] as? Int ?? 0)
         }
+    }
+
+    func fetchLanguageBreakdown(since: Date, salesChannelID: String?) async throws -> [LanguageStat] {
+        var filters: [[String: Any]] = [[
+            "type": "range",
+            "field": "orderDateTime",
+            "parameters": ["gte": since.iso8601String]
+        ]]
+        if let salesChannelID {
+            filters.append(["type": "equals", "field": "salesChannelId", "value": salesChannelID])
+        }
+
+        let response = try await requestJSON(path: "/api/search/order", method: "POST", body: [
+            "limit": 1,
+            "includes": ["order": ["id"]],
+            "filter": filters,
+            "aggregations": [[
+                "name": "languages",
+                "type": "terms",
+                "field": "languageId",
+                "aggregation": ["name": "amount_sum", "type": "sum", "field": "amountTotal"]
+            ]]
+        ])
+
+        guard let aggregations = response["aggregations"] as? [String: Any],
+              let terms = aggregations["languages"] as? [String: Any],
+              let buckets = terms["buckets"] as? [[String: Any]], !buckets.isEmpty else {
+            return []
+        }
+
+        let languageNames = (try? await fetchLanguageNames()) ?? [:]
+
+        return buckets.compactMap { bucket -> LanguageStat? in
+            guard let languageID = bucket["key"] as? String else { return nil }
+            let count = bucket["count"] as? Int ?? 0
+            let amount = ((bucket["amount_sum"] as? [String: Any])?["sum"] as? NSNumber)?.doubleValue ?? 0
+            return LanguageStat(
+                id: languageID,
+                name: languageNames[languageID] ?? "Unknown language",
+                count: count,
+                amount: amount
+            )
+        }
+        .sorted { $0.count > $1.count }
+    }
+
+    private func fetchLanguageNames() async throws -> [String: String] {
+        let response = try await requestJSON(path: "/api/search/language", method: "POST", body: ["limit": 50])
+        var names: [String: String] = [:]
+        for row in (response["data"] as? [[String: Any]] ?? []) {
+            guard let id = row["id"] as? String else { continue }
+            let attrs = entityAttributes(of: row)
+            names[id] = attrs["name"] as? String ?? "Unknown language"
+        }
+        return names
     }
 
     func fetchTopProducts(since: Date, salesChannelID: String?) async throws -> [TopProduct] {
