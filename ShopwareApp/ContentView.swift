@@ -101,38 +101,73 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header — dark navy bar like the admin sidebar
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Administration")
-                                .font(.caption.weight(.bold))
+                    // Header — identity block like the admin sidebar
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(red: 0.47, green: 0.71, blue: 1.0).opacity(0.18))
+                            Text(String((viewModel.connection?.displayHost ?? "S").prefix(1)).uppercased())
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundStyle(Color(red: 0.47, green: 0.71, blue: 1.0))
-                                .textCase(.uppercase)
-                            Text(viewModel.connection?.displayHost ?? "Shopware")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundStyle(Color.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
                         }
+                        .frame(width: 44, height: 44)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(viewModel.connection?.displayHost ?? "Shopware")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color(red: 0.22, green: 0.82, blue: 0.42))
+                                    .frame(width: 7, height: 7)
+                                Text(viewModel.versionString.isEmpty
+                                     ? "Administration"
+                                     : "Administration \(viewModel.versionString)")
+                                    .font(.caption)
+                                    .foregroundStyle(Color(red: 0.62, green: 0.69, blue: 0.78))
+                                    .lineLimit(1)
+                            }
+                        }
+
                         Spacer()
+
                         Button {
                             showSettings = true
                         } label: {
-                            Image(systemName: "gearshape").font(.headline)
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .frame(width: 38, height: 38)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Circle())
                         }
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(.plain)
                         .accessibilityLabel("Shop settings")
+
                         Button {
                             Task { await viewModel.disconnect() }
                         } label: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right").font(.headline)
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .frame(width: 38, height: 38)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Circle())
                         }
-                        .buttonStyle(IconButtonStyle())
+                        .buttonStyle(.plain)
                         .accessibilityLabel("Disconnect")
                     }
-                    .padding(16)
-                    .background(Color.swNavy)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(red: 0.14, green: 0.19, blue: 0.28), Color.swNavy],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     // Sales channel selector
                     Menu {
@@ -1490,6 +1525,7 @@ final class ShopwareDashboardViewModel: ObservableObject {
     @Published var selectedChannelID: String?
     @Published var lowStockProducts: [LowStockProduct] = []
     @Published var topProducts: [TopProduct] = []
+    @Published var versionString = ""
 
     var selectedChannelName: String {
         guard let id = selectedChannelID else { return "All sales channels" }
@@ -1545,6 +1581,9 @@ final class ShopwareDashboardViewModel: ObservableObject {
         guard let client else { return }
         isLoading = true
         errorMessage = nil
+        if versionString.isEmpty {
+            versionString = (try? await client.fetchShopwareVersion()) ?? ""
+        }
         do {
             async let m = client.dashboardMetrics(salesChannelID: selectedChannelID)
             async let ob = client.fetchHistory(paid: false, range: ordersRange, salesChannelID: selectedChannelID)
@@ -1662,6 +1701,7 @@ final class ShopwareDashboardViewModel: ObservableObject {
         revenueBuckets = []
         salesChannels = []
         selectedChannelID = nil
+        versionString = ""
     }
 }
 
